@@ -1,0 +1,6 @@
+{
+  "type": "stagelock:dimension",
+  "requires": "nether",
+  "dimensions": ["minecraft:the_nether"],
+  "message": "The portal refuses you. Form some obsidian first."
+}

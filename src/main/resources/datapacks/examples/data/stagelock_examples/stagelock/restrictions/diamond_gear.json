@@ -1,0 +1,8 @@
+{
+  "type": "stagelock:item",
+  "requires": "iron_age",
+  "items": ["#c:gems/diamond", "minecraft:diamond_pickaxe", "minecraft:diamond_sword", "minecraft:diamond_axe"],
+  "actions": { "pickup": false, "hold": "allow" },
+  "hidden_name": "Shiny Rock",
+  "tooltip": "replace"
+}

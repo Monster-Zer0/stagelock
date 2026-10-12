@@ -1,0 +1,9 @@
+{
+  "id": "iron_age",
+  "display_name": "Iron Age",
+  "description": "Smelt your first iron ingot.",
+  "icon": "minecraft:iron_ingot",
+  "requires": ["stone_age"],
+  "unlock": { "advancements": ["minecraft:story/smelt_iron"] },
+  "on_grant": { "message": true }
+}

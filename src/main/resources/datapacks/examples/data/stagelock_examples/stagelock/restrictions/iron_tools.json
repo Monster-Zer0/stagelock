@@ -1,0 +1,5 @@
+{
+  "type": "stagelock:recipe",
+  "requires": "stone_age",
+  "outputs": ["minecraft:iron_pickaxe", "minecraft:iron_axe", "minecraft:iron_sword", "minecraft:iron_shovel", "minecraft:iron_hoe"]
+}

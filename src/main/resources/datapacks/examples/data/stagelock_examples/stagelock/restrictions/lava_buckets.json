@@ -1,0 +1,5 @@
+{
+  "type": "stagelock:fluid",
+  "requires": "iron_age",
+  "fluids": ["#minecraft:lava"]
+}

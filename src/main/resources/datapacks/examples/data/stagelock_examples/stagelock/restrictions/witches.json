@@ -1,0 +1,6 @@
+{
+  "type": "stagelock:entity",
+  "requires": "iron_age",
+  "entities": ["minecraft:witch"],
+  "actions": { "attack": false, "interact": false, "spawn": { "range": 96, "allow_spawners": true } }
+}

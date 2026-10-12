@@ -1,0 +1,6 @@
+{
+  "type": "stagelock:recipe",
+  "requires": "iron_age",
+  "recipe_types": ["minecraft:blasting"],
+  "viewer": "lock"
+}

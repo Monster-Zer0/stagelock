@@ -1,0 +1,7 @@
+{
+  "id": "stone_age",
+  "display_name": "Stone Age",
+  "icon": "minecraft:stone_pickaxe",
+  "unlock": { "advancements": ["minecraft:story/upgrade_tools"] },
+  "on_grant": { "message": true }
+}

@@ -1,0 +1,7 @@
+{
+  "type": "stagelock:block",
+  "requires": "iron_age",
+  "blocks": ["#c:ores/diamond"],
+  "actions": { "break": false, "interact": false, "place": false },
+  "disguise_as": "minecraft:stone"
+}

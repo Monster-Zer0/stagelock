@@ -1,0 +1,149 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.148'
+    id 'idea'
+}
+
+tasks.named('wrapper', Wrapper).configure {
+    distributionType = Wrapper.DistributionType.BIN
+}
+
+version = mod_version
+group = mod_group_id
+
+sourceSets.main.resources {
+    srcDir('src/generated/resources')
+    exclude("src/generated/**/.cache")
+}
+
+repositories {
+    maven { url = 'https://maven.blamejared.com' ; content { includeGroup 'mezz.jei' } }
+    maven { url = 'https://maven.shedaniel.me' ; content { includeGroupByRegex 'me\\.shedaniel.*' ; includeGroup 'dev.architectury' } }
+    maven { url = 'https://maven.architectury.dev' ; content { includeGroup 'dev.architectury' } }
+    maven { url = 'https://maven.terraformersmc.com/releases' ; content { includeGroup 'dev.emi' } }
+    maven { url = 'https://maven.latvian.dev/releases' ; content { includeGroupByRegex 'dev\\.latvian.*' } }
+    maven { url = 'https://maven.ftb.dev/releases' ; content { includeGroupByRegex 'dev\\.ftb.*' } }
+    maven { url = 'https://maven.theillusivec4.top' ; content { includeGroup 'top.theillusivec4.curios' } }
+    maven { url = 'https://api.modrinth.com/maven' ; content { includeGroup 'maven.modrinth' } }
+}
+
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    runs {
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+        gameTestServer {
+            type = "gameTestServer"
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+        configureEach {
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+
+    unitTest {
+        enable()
+        testedMod = mods."${mod_id}"
+    }
+}
+
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+dependencies {
+    // Optional integrations: compiled against, never bundled. Each is only touched when the mod is loaded.
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
+    compileOnly "me.shedaniel:RoughlyEnoughItems-api-neoforge:${rei_version}"
+    compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
+    compileOnly "dev.emi:emi-neoforge:${emi_version}:api"
+    compileOnly "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
+    compileOnly "dev.latvian.mods:rhino:${rhino_version}"
+    compileOnly "dev.ftb.mods:ftb-teams-neoforge:${ftb_teams_version}"
+    compileOnly "dev.ftb.mods:ftb-library-neoforge:${ftb_library_version}"
+    compileOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}:api"
+    compileOnly "maven.modrinth:jade:${jade_version}"
+
+    // Pick which integrations load in dev runs with -Pdev_jei=true etc.
+    if (project.findProperty('dev_jei') == 'true') localRuntime "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    if (project.findProperty('dev_emi') == 'true') localRuntime "dev.emi:emi-neoforge:${emi_version}"
+    if (project.findProperty('dev_rei') == 'true') {
+        localRuntime "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
+        localRuntime "dev.architectury:architectury-neoforge:${architectury_version}"
+    }
+    if (project.findProperty('dev_kubejs') == 'true') {
+        // Non-transitive: KubeJS pulls a jitpack-only GIF library we don't need in dev.
+        localRuntime("dev.latvian.mods:kubejs-neoforge:${kubejs_version}") { transitive = false }
+        localRuntime "dev.latvian.mods:rhino:${rhino_version}"
+        localRuntime "dev.architectury:architectury-neoforge:${architectury_version}"
+    }
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+}
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}
+
+// GameTests run from the compiled classes; keep them out of the published jar.
+tasks.named('jar', Jar) {
+    exclude 'dev/stagelock/gametest/**'
+    exclude 'data/stagelock/structure/**'
+}

@@ -1,0 +1,6 @@
+{
+  "type": "stagelock:enchantment",
+  "requires": "nether",
+  "enchantments": ["minecraft:mending"],
+  "actions": { "hold": "allow", "pickup": false, "viewer": "show" }
+}

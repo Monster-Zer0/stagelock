@@ -1,0 +1,26 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.stagelock.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "recipe.RecipeManagerMixin",
+    "recipe.CraftingMenuMixin",
+    "recipe.SmithingMenuMixin",
+    "recipe.StonecutterMenuMixin",
+    "recipe.AbstractFurnaceBlockEntityMixin",
+    "recipe.CampfireBlockEntityMixin",
+    "recipe.CrafterBlockMixin",
+    "recipe.CrafterMenuMixin",
+    "recipe.ResultSlotMixin",
+    "recipe.CampfireBlockMixin"
+  ],
+  "client": [
+    "client.ItemStackMixin",
+    "client.RecipeCollectionMixin",
+    "client.BlockModelShaperMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "id": "nether",
+  "display_name": "Nether Explorer",
+  "icon": "minecraft:obsidian",
+  "requires": ["iron_age"],
+  "unlock": { "advancements": ["minecraft:story/form_obsidian"], "scope": "team" },
+  "on_grant": { "message": true }
+}
