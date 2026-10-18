@@ -54,14 +54,40 @@ public final class ItemIndex {
     }
 
     /**
-     * Returns the first rule that blocks {@code action} for this stack and whose requirement the
-     * stages do not satisfy. A {@code null} action matches any rule (used for tooltips).
+     * Returns the rule that decides {@code action} for this stack: among the rules that block it and
+     * whose requirement the stages do not satisfy, the most restrictive one (see {@link #strictness}).
+     * Equally strict rules resolve to the first in load order. A {@code null} action considers every
+     * locked rule (used for tooltips, hidden names and messages).
      */
     @Nullable
     public RestrictionManager.Entry<ItemRestriction> find(ItemStack stack, StageSet stages, @Nullable ItemAction action) {
         if (stack.isEmpty()) return null;
-        var hit = scan(byItem.get(stack.getItem()), stack, stages, action);
-        return hit != null ? hit : scan(wildcard, stack, stages, action);
+        var hit = scan(byItem.get(stack.getItem()), stack, stages, action, null);
+        return scan(wildcard, stack, stages, action, hit);
+    }
+
+    /**
+     * How restrictive a rule is for an action, so the strictest of several locking rules decides.
+     * For {@code hold}: destroy > drop. For {@code viewer}: hide > lock > show. Other actions are plain
+     * yes/no, so any blocking rule decides. With no specific action, hold mode counts most, then
+     * viewer mode, then how many actions the rule blocks.
+     */
+    static int strictness(ItemRestriction rule, @Nullable ItemAction action) {
+        var actions = rule.actions();
+        int hold = actions.hold().ordinal();
+        int viewer = switch (actions.viewer()) {
+            case HIDE -> 2;
+            case LOCK -> 1;
+            case SHOW -> 0;
+        };
+        if (action == ItemAction.HOLD) return hold;
+        if (action == ItemAction.VIEWER) return viewer;
+        if (action != null) return 0;
+        int blocked = 0;
+        for (ItemAction each : ItemAction.values()) {
+            if (rule.blocks(each)) blocked++;
+        }
+        return hold * 100 + viewer * 20 + blocked;
     }
 
     /** Every rule matching the stack, regardless of stages or actions (for debugging commands). */
@@ -87,14 +113,19 @@ public final class ItemIndex {
 
     @Nullable
     private static RestrictionManager.Entry<ItemRestriction> scan(@Nullable List<RestrictionManager.Entry<ItemRestriction>> entries,
-                                                                  ItemStack stack, StageSet stages, @Nullable ItemAction action) {
-        if (entries == null) return null;
+                                                                  ItemStack stack, StageSet stages, @Nullable ItemAction action,
+                                                                  @Nullable RestrictionManager.Entry<ItemRestriction> best) {
+        if (entries == null) return best;
+        int bestStrictness = best == null ? -1 : strictness(best.rule(), action);
         for (var entry : entries) {
             ItemRestriction rule = entry.rule();
             if (action != null && !rule.blocks(action)) continue;
             if (rule.requires().test(stages)) continue;
-            if (rule.matches(stack)) return entry;
+            int strictness = strictness(rule, action);
+            if (strictness <= bestStrictness || !rule.matches(stack)) continue;
+            best = entry;
+            bestStrictness = strictness;
         }
-        return null;
+        return best;
     }
 }

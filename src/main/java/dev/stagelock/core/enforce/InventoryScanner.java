@@ -3,6 +3,7 @@ package dev.stagelock.core.enforce;
 import dev.stagelock.api.StageLockAPI;
 import dev.stagelock.api.restriction.ItemAction;
 import dev.stagelock.api.restriction.ItemRestriction;
+import dev.stagelock.core.config.ServerConfig;
 import dev.stagelock.core.restriction.RestrictionManager;
 import net.minecraft.core.NonNullList;
 import net.minecraft.server.level.ServerPlayer;
@@ -20,12 +21,19 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Removes items a player may not hold, and takes off armor they may not wear.
  * <p>
- * Unlike ItemStages, this does not scan every slot every tick: a player's inventory is only scanned
- * when its change counter, the player's stages, or the active rules changed since the last scan.
+ * Unlike ItemStages, this does not scan every slot every tick: a player's inventory is scanned when
+ * its change counter, the player's stages, or the active rules changed since the last scan. Items put
+ * into the inventory without bumping the change counter ({@code /give}, mods writing the slot list
+ * directly) are caught by a full rescan every {@code inventoryRescanTicks} ticks.
  */
 public final class InventoryScanner {
 
-    private record ScanState(int inventoryChanges, long stagesVersion, int rulesGeneration) {
+    private record ScanState(int inventoryChanges, long stagesVersion, int rulesGeneration, int tick) {
+
+        boolean sameAs(ScanState other) {
+            return inventoryChanges == other.inventoryChanges && stagesVersion == other.stagesVersion
+                    && rulesGeneration == other.rulesGeneration;
+        }
     }
 
     private static final Map<UUID, ScanState> STATES = new ConcurrentHashMap<>();
@@ -60,11 +68,15 @@ public final class InventoryScanner {
     private static void onTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         ScanState now = new ScanState(player.getInventory().getTimesChanged(),
-                StageLockAPI.getStages(player).version(), RestrictionManager.server().generation());
-        if (now.equals(STATES.get(player.getUUID()))) return;
+                StageLockAPI.getStages(player).version(), RestrictionManager.server().generation(), player.tickCount);
+        ScanState last = STATES.get(player.getUUID());
+        int interval = ServerConfig.INVENTORY_RESCAN_TICKS.get();
+        boolean due = interval > 0 && last != null && player.tickCount - last.tick() >= interval;
+        if (last != null && now.sameAs(last) && !due) return;
         scan(player);
         // Record the counter *after* our own removals so they don't trigger another scan.
-        STATES.put(player.getUUID(), new ScanState(player.getInventory().getTimesChanged(), now.stagesVersion(), now.rulesGeneration()));
+        STATES.put(player.getUUID(), new ScanState(player.getInventory().getTimesChanged(), now.stagesVersion(),
+                now.rulesGeneration(), player.tickCount));
     }
 
     static void scan(ServerPlayer player) {

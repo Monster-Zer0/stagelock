@@ -77,6 +77,18 @@ changes. A file holds one rule, or `{"rules": [...]}` for several.
 
 Every action is blocked by default; set an action to `false` to allow it.
 
+**When several rules match.** Only locked rules count, meaning rules whose `requires` the player
+doesn't meet. Among those, the strictest outcome applies, wherever the rules come from:
+- **Yes/no actions** (`pickup`, `use`, `break`, `attack`, entering a dimension, crafting a recipe, …): any locked rule that blocks the action blocks it.
+- **`hold`:** `destroy` beats `drop`, and `drop` beats `allow`. A rule that allows holding never cancels another rule that drops the item.
+- **`viewer`:** `hide` beats `lock`, and `lock` beats `show`.
+- **Messages and display:** the rule that decided the action supplies the message. The tooltip and hidden name come from the strictest locked rule. `/stagelock why` lists every matching rule and which one decides each action.
+- **`disguise_as`:** if two locked rules disguise the same block, the first loaded rule wins.
+
+**Inventory checks.** Inventories are rechecked whenever they change, and also fully every
+`inventoryRescanTicks` ticks (default 20). That catches items added without marking the inventory
+changed, such as `/give` or mods that write slots directly.
+
 **Example item rule:**
 
 ```json
@@ -167,6 +179,7 @@ A padlock icon marks locked items in every inventory, and also in recipe viewers
   - Which team provider to use.
   - `dependencyMode` and `strictStages`.
   - What happens when mining with a locked tool: bare-hand speed, or no mining at all.
+  - `inventoryRescanTicks`: how often inventories are fully rechecked (0 turns the periodic recheck off).
   - Recipe automation policies.
   - The message cooldown.
   - Stages for fake players.

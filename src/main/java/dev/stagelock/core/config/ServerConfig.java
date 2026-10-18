@@ -17,6 +17,7 @@ public final class ServerConfig {
     public static final ModConfigSpec.EnumValue<DependencyMode> DEPENDENCY_MODE;
     public static final ModConfigSpec.BooleanValue STRICT_STAGES;
     public static final ModConfigSpec.EnumValue<ToolMining> RESTRICTED_TOOL_MINING;
+    public static final ModConfigSpec.IntValue INVENTORY_RESCAN_TICKS;
     public static final ModConfigSpec.BooleanValue EVICT_ON_LOGIN;
     public static final ModConfigSpec.EnumValue<AutomationPolicy> AUTOMATION_POLICY;
     public static final ModConfigSpec.EnumValue<Policy> UNOWNED_POLICY;
@@ -60,6 +61,10 @@ public final class ServerConfig {
                 .comment("What happens when a player mines while holding a tool they may not use (action \"mine\").",
                         "BARE_HAND mines as if the hand were empty; DENY prevents breaking blocks at all.")
                 .defineEnum("restrictedToolMining", ToolMining.BARE_HAND);
+        INVENTORY_RESCAN_TICKS = builder
+                .comment("Inventories are rechecked whenever they change. Items inserted without marking the inventory changed",
+                        "(/give, some mods) are caught by a full recheck every this many ticks. 0 disables the periodic recheck.")
+                .defineInRange("inventoryRescanTicks", 20, 0, 20 * 60);
         builder.pop();
 
         builder.push("world");

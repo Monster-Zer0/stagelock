@@ -55,5 +55,6 @@
   "commands.stagelock.import.success": "Imported %s GameStages stages for %s players (%s skipped)",
   "commands.stagelock.import.failed": "GameStages import failed: %s",
   "message.stagelock.fluid.pickup": "You don't know how to collect %s yet",
-  "message.stagelock.fluid.place": "You don't know how to pour %s yet"
+  "message.stagelock.fluid.place": "You don't know how to pour %s yet",
+  "commands.stagelock.why.decides": " => %s decides: %s"
 }

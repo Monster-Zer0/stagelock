@@ -30,6 +30,7 @@ import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 
@@ -37,6 +38,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -237,6 +239,17 @@ public final class StageLockCommands {
                             .withStyle(met ? ChatFormatting.GREEN : ChatFormatting.RED))
                     .append(Component.literal(" requires " + requirement + "; blocks: " + actions).withStyle(ChatFormatting.GRAY)), false);
         }
+        // When several locked rules match, the strictest decides each action; show which one that is.
+        Map<ResourceLocation, List<String>> decided = new java.util.LinkedHashMap<>();
+        for (ItemAction action : ItemAction.values()) {
+            var hit = RestrictionManager.server().items().find(stack, stages, action);
+            if (hit == null) continue;
+            String name = action.name().toLowerCase(Locale.ROOT);
+            if (action == ItemAction.HOLD) name += "=" + hit.rule().actions().hold().getSerializedName();
+            decided.computeIfAbsent(hit.id(), id -> new java.util.ArrayList<>()).add(name);
+        }
+        decided.forEach((id, actions) -> source.sendSuccess(() -> Component.translatable("commands.stagelock.why.decides",
+                id.toString(), String.join(", ", actions)).withStyle(ChatFormatting.YELLOW), false));
         return entries.size();
     }
 

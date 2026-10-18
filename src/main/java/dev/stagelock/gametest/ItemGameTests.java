@@ -44,7 +44,17 @@ public final class ItemGameTests {
         rules.put(StageLock.id("test/diamond"), rule("minecraft:diamond", "test:gems", ItemRestriction.Actions.ALL));
         rules.put(StageLock.id("test/emerald"), rule("minecraft:emerald", "test:gems", ItemRestriction.Actions.ALL));
         rules.put(StageLock.id("test/snowball"), rule("minecraft:snowball", "test:throwing", USE_ONLY));
+        // Two rules on one item: a loose one (like the example pack's diamond gear) listed first, a strict one second.
+        rules.put(StageLock.id("test/pickaxe_loose"), rule("minecraft:golden_pickaxe", "test:loose", holding(ItemRestriction.HoldMode.ALLOW)));
+        rules.put(StageLock.id("test/pickaxe_strict"), rule("minecraft:golden_pickaxe", "test:strict", holding(ItemRestriction.HoldMode.DROP)));
+        // Two rules that both block holding, the milder one first.
+        rules.put(StageLock.id("test/axe_drop"), rule("minecraft:golden_axe", "test:axe_drop", holding(ItemRestriction.HoldMode.DROP)));
+        rules.put(StageLock.id("test/axe_destroy"), rule("minecraft:golden_axe", "test:axe_destroy", holding(ItemRestriction.HoldMode.DESTROY)));
         TestPlayers.addRules(rules);
+    }
+
+    private static ItemRestriction.Actions holding(ItemRestriction.HoldMode hold) {
+        return new ItemRestriction.Actions(false, true, true, true, true, true, hold, true, ItemRestriction.ViewerMode.SHOW);
     }
 
     private static ItemRestriction rule(String item, String stage, ItemRestriction.Actions actions) {
@@ -97,6 +107,60 @@ public final class ItemGameTests {
         helper.assertTrue(snowballs.getCount() == 3, "snowball not thrown after unlock");
         TestPlayers.remove(player);
         helper.succeed();
+    }
+
+    /** Items written straight into the inventory list (e.g. /give, other mods) don't bump the change counter. */
+    @GameTest(template = EMPTY, batch = BATCH)
+    public static void directInsertIsRemovedWithinRescanInterval(GameTestHelper helper) {
+        ServerPlayer player = TestPlayers.create(helper, GameType.SURVIVAL);
+        helper.onEachTick(player::doTick);
+        int interval = dev.stagelock.core.config.ServerConfig.INVENTORY_RESCAN_TICKS.get();
+        helper.assertTrue(interval > 0, "periodic rescan disabled in config");
+        helper.runAfterDelay(5, () -> {
+            int changes = player.getInventory().getTimesChanged();
+            player.getInventory().items.set(3, new ItemStack(Items.EMERALD));
+            helper.assertTrue(player.getInventory().getTimesChanged() == changes, "test setup bumped the change counter");
+            helper.runAfterDelay(interval + 2, () -> {
+                helper.assertFalse(player.getInventory().contains(new ItemStack(Items.EMERALD)), "directly inserted locked item was kept");
+                TestPlayers.remove(player);
+                helper.succeed();
+            });
+        });
+    }
+
+    @GameTest(template = EMPTY, batch = BATCH)
+    public static void looserRuleDoesNotHideStricterOne(GameTestHelper helper) {
+        ServerPlayer player = TestPlayers.create(helper, GameType.SURVIVAL);
+        helper.onEachTick(player::doTick);
+        ItemStack pickaxe = new ItemStack(Items.GOLDEN_PICKAXE);
+        var hit = dev.stagelock.core.enforce.Restrictions.item(player, pickaxe, dev.stagelock.api.restriction.ItemAction.HOLD);
+        helper.assertTrue(hit != null && hit.id().equals(StageLock.id("test/pickaxe_strict")), "hold decided by " + (hit == null ? null : hit.id()));
+        player.getInventory().add(pickaxe.copy());
+        helper.succeedWhen(() -> {
+            helper.assertFalse(player.getInventory().contains(new ItemStack(Items.GOLDEN_PICKAXE)), "strict hold: drop rule did not apply");
+            TestPlayers.remove(player);
+        });
+    }
+
+    @GameTest(template = EMPTY, batch = BATCH)
+    public static void strictestHoldModeWins(GameTestHelper helper) {
+        ServerPlayer player = TestPlayers.create(helper, GameType.SURVIVAL);
+        helper.onEachTick(player::doTick);
+        ItemStack axe = new ItemStack(Items.GOLDEN_AXE);
+        var hit = dev.stagelock.core.enforce.Restrictions.item(player, axe, dev.stagelock.api.restriction.ItemAction.HOLD);
+        helper.assertTrue(hit != null && hit.id().equals(StageLock.id("test/axe_destroy")), "hold decided by " + (hit == null ? null : hit.id()));
+        player.getInventory().add(axe.copy());
+        helper.runAfterDelay(5, () -> {
+            helper.assertFalse(player.getInventory().contains(new ItemStack(Items.GOLDEN_AXE)), "axe still held");
+            helper.assertTrue(helper.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+                    player.getBoundingBox().inflate(4), e -> e.getItem().is(Items.GOLDEN_AXE)).isEmpty(), "axe was dropped instead of destroyed");
+            // Unlocking the destroy rule leaves the drop rule in charge.
+            StageLockAPI.grant(player, "test:axe_destroy");
+            var after = dev.stagelock.core.enforce.Restrictions.item(player, new ItemStack(Items.GOLDEN_AXE), dev.stagelock.api.restriction.ItemAction.HOLD);
+            helper.assertTrue(after != null && after.id().equals(StageLock.id("test/axe_drop")), "after unlock, hold decided by " + (after == null ? null : after.id()));
+            TestPlayers.remove(player);
+            helper.succeed();
+        });
     }
 
     /** Exercises the real datapack path (RegistryOps, component predicates) and the client sync codec. */
