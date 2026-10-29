@@ -17,7 +17,8 @@ This page has two parts:
 
 ## Before you start
 
-You need **KubeJS** installed alongside StageLock.
+You need **StageLock** ([download it from Releases](https://github.com/Monster-Zer0/stagelock/releases)) and **KubeJS**
+in your instance's `mods` folder. On a server, both go on the server and on every player's client.
 
 1. Open your instance folder and go to `kubejs/server_scripts/`.
 2. Create a file there, for example `stagelock.js`. Any name ending in `.js` works.

@@ -44,6 +44,10 @@ and EMI hide locked content, including every viewer entry that would show it, an
 
 ## Quick start
 
+**Install.** Download the jar from [Releases](https://github.com/Monster-Zer0/stagelock/releases) and put it in
+the `mods` folder of a NeoForge 1.21.1 instance, on the client and on the server. JEI, REI, EMI, KubeJS, FTB Teams,
+Curios and Jade are optional; StageLock works with whichever of them are installed.
+
 **With a datapack.** Save this as `data/mypack/stagelock/restrictions/diamonds.json`, either in a datapack or in
 KubeJS's `kubejs/data/` folder:
 
