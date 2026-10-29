@@ -2,6 +2,7 @@ package dev.stagelock.client.viewer;
 
 import dev.stagelock.StageLock;
 import dev.stagelock.client.ClientStageCache;
+import dev.stagelock.core.config.ServerConfig;
 import dev.stagelock.core.restriction.RestrictionManager;
 import dev.stagelock.core.restriction.ViewerHiding;
 import net.minecraft.client.Minecraft;
@@ -30,6 +31,7 @@ public final class ViewerRefresher {
     // EMI calls markApplied() from its reload thread.
     private static volatile ViewerHiding applied = ViewerHiding.NONE;
     private static volatile int countdown = -1;
+    private static volatile ServerConfig.RecipeHiding appliedMode = ServerConfig.RecipeHiding.SLOT;
 
     private ViewerRefresher() {
     }
@@ -55,13 +57,16 @@ public final class ViewerRefresher {
     /** Called by a viewer that just rebuilt itself from the live state (e.g. JEI runtime reload). */
     public static void markApplied() {
         applied = current();
+        appliedMode = ServerConfig.recipeHiding();
         countdown = -1;
     }
 
     private static void tick() {
         if (Minecraft.getInstance().player == null) return;
         ViewerHiding now = current();
-        if (!now.changedFrom(applied)) {
+        ServerConfig.RecipeHiding mode = ServerConfig.recipeHiding();
+        boolean modeChanged = mode != appliedMode && !(now.active().isEmpty() && applied.active().isEmpty());
+        if (!modeChanged && !now.changedFrom(applied)) {
             applied = now;
             countdown = -1;
             return;
@@ -69,6 +74,7 @@ public final class ViewerRefresher {
         if (countdown < 0) countdown = DEBOUNCE_TICKS;
         if (countdown-- > 0) return;
         applied = now;
+        appliedMode = mode;
         for (Runnable listener : LISTENERS) {
             try {
                 listener.run();

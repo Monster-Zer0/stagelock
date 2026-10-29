@@ -78,4 +78,23 @@ class RestrictionCodecTest {
         assertTrue(Restriction.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(
                 "{\"type\": \"stagelock:item\", \"requires\": \"a\", \"items\": \"@\"}")).isError());
     }
+
+    @Test
+    void viewerCategoryRuleAcceptsOneIdOrAList() {
+        var one = (dev.stagelock.api.restriction.ViewerCategoryRestriction) parse("""
+                {"type": "stagelock:viewer_category", "requires": "iron_age", "categories": "minecraft:anvil"}
+                """);
+        assertEquals(java.util.List.of(ResourceLocation.parse("minecraft:anvil")), one.categories());
+        var many = (dev.stagelock.api.restriction.ViewerCategoryRestriction) parse("""
+                {"type": "stagelock:viewer_category", "requires": "iron_age", "categories": ["minecraft:anvil", "emi:anvil_repairing"]}
+                """);
+        assertEquals(2, many.categories().size());
+        var manager = dev.stagelock.core.restriction.RestrictionManager.client();
+        manager.setRules(java.util.Map.of(ResourceLocation.parse("t:cat"), many));
+        try {
+            assertTrue(manager.hidesAnythingInViewer(), "a category rule must make viewers refresh when it flips");
+        } finally {
+            manager.setRules(java.util.Map.of());
+        }
+    }
 }

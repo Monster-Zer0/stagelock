@@ -31,6 +31,7 @@ public final class StageLockClient {
         });
         NeoForge.EVENT_BUS.addListener(TooltipHandler::onTooltip);
         ViewerRefresher.init();
+        dev.stagelock.client.viewer.ViewerCategories.init();
         BlockDisguises.init();
         modBus.addListener(LockDecorator::register);
         NeoForge.EVENT_BUS.addListener(CustomizeGuiOverlayEvent.DebugText.class, StageLockClient::debugText);

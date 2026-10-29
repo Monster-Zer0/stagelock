@@ -1,7 +1,7 @@
 # StageLock
 
 > This is the **advanced README**: the complete reference for commands, datapack JSON, KubeJS, configuration and the Java API.
-> New to StageLock or to scripting? Start with the **[supplemental README](README-SUPPLEMENTAL.md)**: 44 copy-paste examples with plain explanations.
+> New to StageLock or to scripting? Start with the **[supplemental README](README-SUPPLEMENTAL.md)**: 46 copy-paste examples with plain explanations.
 
 Stage-based progression gating for **NeoForge 1.21.1**. It is a modern alternative to GameStages: one mod,
 configured with datapack JSON or KubeJS.
@@ -17,9 +17,10 @@ Rules lock content until the player has the required stages:
 - enchantments
 - dimensions
 - mobs
+- recipe viewer categories
 
 The server enforces every rule. The client mirrors the same rules, so nothing flickers on screen. JEI, REI
-and EMI hide locked content and bring it back as soon as it unlocks.
+and EMI hide locked content, including every viewer entry that would show it, and bring it back as soon as it unlocks.
 
 ---
 
@@ -162,6 +163,7 @@ Every command also works as `/stage`. You can turn that alias off in `stagelock-
 | `/stagelock why <player>` | 2 | Every rule matching the held item, whether each is locked, and which one decides each action. |
 | `/stagelock dump` | 2 | Writes every stage definition and rule, from JSON and scripts alike, to `config/stagelock/dump.md`. |
 | `/stagelock import gamestages` | 3 | Copies GameStages player data (`playerdata/gamestages/*.dat`) into StageLock. |
+| `/stagelock_categories` | client | Lists the recipe viewer's category ids for `stagelock:viewer_category` rules, with how many entries StageLock hides in each. Runs on your own client, so it works on any server. |
 
 ---
 
@@ -386,6 +388,37 @@ With `evictOnLogin` (on by default), a player who logs in inside a locked dimens
 
 Spawns from commands, spawn eggs, buckets, dispensers and conversions are never gated. Bosses that are built rather than spawned (the Wither from skulls, the Iron Golem from blocks) don't go through spawning either; lock the item that builds them instead.
 
+### `stagelock:viewer_category`
+
+```json
+{ "type": "stagelock:viewer_category", "requires": "iron_age", "categories": ["minecraft:anvil", "emi:anvil_repairing"] }
+```
+
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `categories` | category id, or a list of them | *(required)* | Recipe viewer categories (tabs) hidden until the requirement is met. |
+
+Nothing is enforced in the world; this only changes what JEI, REI and EMI show. Each viewer names its categories
+differently: JEI's anvil is `minecraft:anvil`, EMI's is `emi:anvil_repairing` and REI's is `minecraft:plugins/anvil`.
+Run the client command **`/stagelock_categories`** to list the ids of the viewer you have installed. Click an id
+to copy it. Red ids are hidden for you right now, and categories with hidden entries show how many.
+
+### What hiding an item hides in recipe viewers
+
+An item or fluid with `viewer: hide` is removed from the viewer's item list. Every viewer entry that would still
+show it is hidden as well, from any category and any mod: crafting, smelting, the anvil and grindstone, machine
+recipes, loot and trade tables, tag lists. So pressing R or U on another item can't reveal it either. The server
+config `viewers.recipeHiding` decides how far this goes:
+
+| Mode | An entry is hidden when… | Example: iron sword hidden |
+|---|---|---|
+| `SLOT` (default) | one of its slots can only show hidden things | Anvil repair of the sword: hidden. Smelting "any iron tool → nugget": still shown, the slot has other tools. |
+| `STRICT` | any slot shows anything hidden, even as one of several options | Both hidden. The best choice for "you can't see what's ahead" packs; it also hides recipes that accept a whole tag if one member is locked. |
+| `OUTPUT` | only the result is hidden (StageLock 0.1.2 and older) | Neither hidden, only the sword's own crafting recipe. |
+
+A category is hidden as a whole when every one of its workstations is hidden (for example, all of a mod's
+furnace blocks), except in `OUTPUT` mode.
+
 ---
 
 ## KubeJS
@@ -427,6 +460,7 @@ StageLockEvents.restrictions(event => {
   event.block('#c:ores/uranium').requires('nuclear').only().disguiseAs('minecraft:stone')
   event.dimension('minecraft:the_nether').requires('nether').message('Too hot!')
   event.entity('minecraft:enderman').requires('endgame').preventSpawn(128)
+  event.viewerCategory(['minecraft:anvil', 'emi:anvil_repairing']).requires('iron_age')
 
   // Anything the builders don't cover: write the datapack JSON directly.
   event.add({ type: 'stagelock:fluid', requires: 'iron_age', fluids: '#minecraft:lava' })
@@ -446,6 +480,7 @@ StageLockEvents.restrictions(event => {
 | `block(blocks)` | block selector(s) | [BlockRule](#blockrule) | `stagelock:block` |
 | `dimension(dims)` | dimension id(s) | [DimensionRule](#dimensionrule) | `stagelock:dimension` |
 | `entity(entities)` | entity selector(s) | [EntityRule](#entityrule) | `stagelock:entity` |
+| `viewerCategory(ids)` | viewer category id(s) | shared methods only | `stagelock:viewer_category` |
 | `add(json)` | a JS object written exactly like a rule file | — | any type, including `stagelock:fluid` and `stagelock:enchantment` |
 
 Every builder **must** call `.requires(...)`; a rule without it is an error.
@@ -629,7 +664,7 @@ All are optional.
 | Mod | What StageLock adds |
 |---|---|
 | KubeJS | Everything in the [KubeJS](#kubejs) section above. |
-| JEI, REI, EMI | Locked items, fluids and recipes with `viewer: hide` are removed, and come back the moment they unlock. Packs whose rules are all `show` never trigger a viewer refresh. |
+| JEI, REI, EMI | Locked items, fluids and recipes with `viewer: hide` are removed, along with every entry that shows them (see [what hiding an item hides](#what-hiding-an-item-hides-in-recipe-viewers)), and come back the moment they unlock. `stagelock:viewer_category` hides whole categories. Packs whose rules are all `show` never trigger a viewer refresh. |
 | FTB Teams | Party teams are used for team-scope stages. |
 | FTB Quests | Stage tasks and rewards, through KubeJS stages (FTB XMod Compat). |
 | Curios | Locked items can't be equipped in curio slots, and are taken out when a stage is revoked. |
@@ -641,7 +676,7 @@ A padlock icon marks locked items everywhere items render.
 
 ## Configuration
 
-### `stagelock-server.toml` (per world)
+### `stagelock-server.toml`
 
 | Section | Key | Default | Meaning |
 |---|---|---|---|
@@ -655,6 +690,7 @@ A padlock icon marks locked items everywhere items render.
 | `items` | `restrictedToolMining` | `BARE_HAND` | Mining with a locked tool: `BARE_HAND` (hand speed) or `DENY` (no mining). |
 | `items` | `inventoryRescanTicks` | `20` | Inventories are rechecked whenever they change, and also fully this often. That catches `/give` and mods that write slots directly. `0` turns the periodic check off. |
 | `world` | `evictOnLogin` | `true` | Move players who log in inside a locked dimension to spawn. |
+| `viewers` | `recipeHiding` | `SLOT` | Which recipe viewer entries a hidden item takes with it: `SLOT`, `STRICT` or `OUTPUT` (see [above](#what-hiding-an-item-hides-in-recipe-viewers)). |
 | `recipes` | `automationPolicy` | `OWNER` | Machines with no player present: `OWNER` (the placer's stages), `ALLOW` or `DENY`. |
 | `recipes` | `unownedPolicy` | `ALLOW` | With `OWNER`: machines that have no owner. |
 | `recipes` | `contextlessPolicy` | `ALLOW` | Recipe lookups from other mods with no player or owner: `ALLOW` or `DENY`. |
@@ -685,6 +721,7 @@ A padlock icon marks locked items everywhere items render.
 | A typo in a stage name | With definitions present, the log warns `Restriction <id> uses undefined stages [...]`. |
 | A definition's id isn't what you expected | Without `"id"`, a file at `data/mypack/stagelock/stages/iron_age.json` defines `mypack:iron_age`, not `iron_age`. |
 | An item obtained a different way bypasses its lock | Lock the recipe as well (`craft` or `stagelock:recipe`), and gate loot with the `stagelock:has_stage` loot condition. |
+| A locked item still shows up in some JEI/REI/EMI page | It sits in a slot next to visible options. Set `viewers.recipeHiding` to `STRICT`, or hide the whole category with `stagelock:viewer_category`. |
 | Automation still crafts locked recipes | Machines use their owner's stages. Other mods' machines without one follow `contextlessPolicy`. |
 
 ---

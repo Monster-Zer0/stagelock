@@ -56,5 +56,9 @@
   "commands.stagelock.import.failed": "GameStages import failed: %s",
   "message.stagelock.fluid.pickup": "You don't know how to collect %s yet",
   "message.stagelock.fluid.place": "You don't know how to pour %s yet",
-  "commands.stagelock.why.decides": " => %s decides: %s"
+  "commands.stagelock.why.decides": " => %s decides: %s",
+  "stagelock.categories.none": "No recipe viewer (JEI, REI or EMI) has loaded its categories yet",
+  "stagelock.categories.copy": "Click to copy",
+  "stagelock.categories.entries": "%s (%s entries hidden)",
+  "stagelock.categories.hidden": "Hidden for you by a viewer_category rule. Click to copy"
 }

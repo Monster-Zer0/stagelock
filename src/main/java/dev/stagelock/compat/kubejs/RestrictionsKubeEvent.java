@@ -11,6 +11,7 @@ import dev.stagelock.api.restriction.ItemRestriction;
 import dev.stagelock.api.restriction.RecipeRestriction;
 import dev.stagelock.api.restriction.RegistryMatcher;
 import dev.stagelock.api.restriction.Restriction;
+import dev.stagelock.api.restriction.ViewerCategoryRestriction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -39,6 +40,7 @@ import java.util.stream.Collectors;
  *   event.block('#c:ores/uranium').requires('nuclear')
  *   event.dimension('minecraft:the_nether').requires('nether').message('Too hot!')
  *   event.entity('minecraft:wither').requires('endgame').preventSpawn(128)
+ *   event.viewerCategory('minecraft:anvil').requires('iron_age')
  *   event.add({type: 'stagelock:item', requires: 'x', items: 'minecraft:stick'})
  * })
  * }</pre>
@@ -109,6 +111,15 @@ public final class RestrictionsKubeEvent implements KubeEvent {
 
     public EntityRule entity(Object entities) {
         EntityRule rule = new EntityRule(JsValues.parse(RegistryMatcher.listCodec(Registries.ENTITY_TYPE), entities, registries, "entities"));
+        builders.add(rule::build);
+        return rule;
+    }
+
+    /** Hides whole recipe viewer categories (JEI/REI/EMI tabs); {@code /stagelock_categories} lists the ids. */
+    public ViewerCategoryRule viewerCategory(Object categories) {
+        ViewerCategoryRule rule = new ViewerCategoryRule(JsValues.parse(Codec.either(ResourceLocation.CODEC.listOf(), ResourceLocation.CODEC)
+                .xmap(e -> e.map(l -> l, List::of), com.mojang.datafixers.util.Either::<List<ResourceLocation>, ResourceLocation>left),
+                categories, registries, "viewer categories"));
         builders.add(rule::build);
         return rule;
     }
@@ -307,6 +318,18 @@ public final class RestrictionsKubeEvent implements KubeEvent {
 
         Restriction build() {
             return new EntityRestriction(requirement(), entities, new EntityRestriction.Actions(attack, interact, spawn), message);
+        }
+    }
+
+    public final class ViewerCategoryRule extends Rule<ViewerCategoryRule> {
+        private final List<ResourceLocation> categories;
+
+        ViewerCategoryRule(List<ResourceLocation> categories) {
+            this.categories = categories;
+        }
+
+        Restriction build() {
+            return new ViewerCategoryRestriction(requirement(), categories);
         }
     }
 

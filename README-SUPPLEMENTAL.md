@@ -378,9 +378,42 @@ StageLockEvents.restrictions(event => {
 })
 ```
 
+### Recipe viewers (JEI, REI, EMI)
+
+A locked item is already hidden from JEI, REI and EMI, together with the pages that would show it: its
+recipes, anvil and grindstone pages, machine recipes, loot and trade pages. These two examples go further.
+
+#### 31. Hide a whole JEI page until a stage
+
+*The anvil page stays hidden until `iron_age`. Each recipe viewer names its pages differently, so list the
+one you use (or all of them). Type **`/stagelock_categories`** in game to see the names; click one to copy it.*
+
+```js
+StageLockEvents.restrictions(event => {
+  event.viewerCategory([
+    'minecraft:anvil',          // JEI
+    'emi:anvil_repairing',      // EMI
+    'minecraft:plugins/anvil'   // REI
+  ]).requires('iron_age')
+})
+```
+
+#### 32. Don't let a locked item show up anywhere
+
+*By default a page stays visible when the locked item is only one of several choices in a slot, such as a
+smelting recipe that takes "any iron tool". If you want a pack where players can't see anything ahead of them,
+open `config/stagelock-server.toml` in your instance folder and set:*
+
+```toml
+[viewers]
+	recipeHiding = "STRICT"
+```
+
+*Now every page that shows a locked item, even as one option among many, is hidden until the item unlocks.*
+
 ### Combining stages
 
-#### 31. Needs two stages
+#### 33. Needs two stages
 
 *Square brackets mean "all of these".*
 
@@ -390,7 +423,7 @@ StageLockEvents.restrictions(event => {
 })
 ```
 
-#### 32. Needs either of two stages
+#### 34. Needs either of two stages
 
 *`any_of` means "at least one of these". Good for "tech path or magic path".*
 
@@ -400,7 +433,7 @@ StageLockEvents.restrictions(event => {
 })
 ```
 
-#### 33. Only allowed *before* a stage
+#### 35. Only allowed *before* a stage
 
 *`not` flips it: the starter item works only until they finish the tutorial.*
 
@@ -421,7 +454,7 @@ StageLockEvents.stages(event => {
 })
 ```
 
-#### 34. Give a stage a nice name
+#### 36. Give a stage a nice name
 
 *Tooltips then say "Requires: Iron Age" instead of "Requires: iron_age".*
 
@@ -431,7 +464,7 @@ StageLockEvents.stages(event => {
 })
 ```
 
-#### 35. Unlock a stage with a vanilla advancement
+#### 37. Unlock a stage with a vanilla advancement
 
 *The stage is granted automatically when the player gets the advancement. Find advancement names in the
 advancements screen with F3 + H on, or in the
@@ -443,7 +476,7 @@ StageLockEvents.stages(event => {
 })
 ```
 
-#### 36. Announce unlocks in chat
+#### 38. Announce unlocks in chat
 
 ```js
 StageLockEvents.stages(event => {
@@ -453,7 +486,7 @@ StageLockEvents.stages(event => {
 
 The player sees **"Unlocked: Iron Age"**.
 
-#### 37. Chain stages in order
+#### 39. Chain stages in order
 
 *Granting `iron_age` automatically grants `stone_age` too if they skipped it.*
 
@@ -465,7 +498,7 @@ StageLockEvents.stages(event => {
 })
 ```
 
-#### 38. Share a stage with the whole team
+#### 40. Share a stage with the whole team
 
 *When anyone on the team earns the advancement, the whole team gets the stage. This uses FTB Teams parties, or
 vanilla `/team`.*
@@ -480,7 +513,7 @@ StageLockEvents.stages(event => {
 
 These run on their own, outside the `restrictions` and `stages` blocks.
 
-#### 39. When they craft something for the first time
+#### 41. When they craft something for the first time
 
 ```js
 ItemEvents.crafted('minecraft:iron_pickaxe', event => {
@@ -488,7 +521,7 @@ ItemEvents.crafted('minecraft:iron_pickaxe', event => {
 })
 ```
 
-#### 40. Everyone, when a boss dies
+#### 42. Everyone, when a boss dies
 
 *A **global** stage counts for every player on the server, including ones who join later.*
 
@@ -498,7 +531,7 @@ EntityEvents.death('minecraft:ender_dragon', event => {
 })
 ```
 
-#### 41. A starting stage when they join
+#### 43. A starting stage when they join
 
 ```js
 PlayerEvents.loggedIn(event => {
@@ -508,7 +541,7 @@ PlayerEvents.loggedIn(event => {
 
 Granting a stage someone already has does nothing, so this is safe to run on every login.
 
-#### 42. From a quest, command block or function
+#### 44. From a quest, command block or function
 
 Use the command. `@p` means the nearest player, and `@s` means whoever runs it:
 
@@ -518,7 +551,7 @@ Use the command. `@p` means the nearest player, and `@s` means whoever runs it:
 
 FTB Quests' **Stage** task and reward also work, through KubeJS stages (FTB XMod Compat).
 
-#### 43. Give a reward when a stage unlocks
+#### 45. Give a reward when a stage unlocks
 
 ```js
 StageLockEvents.granted('nether', event => {
@@ -528,7 +561,7 @@ StageLockEvents.granted('nether', event => {
 
 The `if (event.player)` check matters: a team or global stage can unlock while nobody is online.
 
-#### 44. Check a stage in your own script
+#### 46. Check a stage in your own script
 
 *Blaze rods do nothing when right-clicked until the player has `nether`.*
 
@@ -643,6 +676,7 @@ You can nest them: `{ any_of: [['a', 'b'], 'c'] }` means "a and b, or c".
 | `event.block(...)` | placed blocks |
 | `event.dimension(...)` | travel to a dimension |
 | `event.entity(...)` | mobs and other entities |
+| `event.viewerCategory(...)` | whole pages (categories) in JEI, REI or EMI |
 | `event.add({ ... })` | anything else, written as a list of settings. It's needed for fluids and enchantments. |
 
 ### Item options

@@ -98,7 +98,7 @@ public final class RestrictionManager {
 
     /**
      * Rules that hide something in recipe viewers (item, enchantment and fluid rules with
-     * {@code viewer: hide}, recipe rules with {@code viewer: hide}), mapped to their requirement.
+     * {@code viewer: hide}, recipe rules with {@code viewer: hide}, viewer category rules), mapped to their requirement.
      */
     public synchronized Map<ResourceLocation, StageRequirement> viewerHidingRules() {
         if (viewerHiding == null) {
@@ -109,6 +109,7 @@ public final class RestrictionManager {
                     case EnchantmentRestriction enchantment -> enchantment.actions().viewer();
                     case FluidRestriction fluid -> fluid.actions().viewer();
                     case RecipeRestriction recipe -> recipe.viewer();
+                    case dev.stagelock.api.restriction.ViewerCategoryRestriction category -> ItemRestriction.ViewerMode.HIDE;
                     default -> ItemRestriction.ViewerMode.SHOW;
                 };
                 if (mode == ItemRestriction.ViewerMode.HIDE) out.put(id, rule.requires());

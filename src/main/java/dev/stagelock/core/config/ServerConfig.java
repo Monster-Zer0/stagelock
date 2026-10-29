@@ -22,6 +22,7 @@ public final class ServerConfig {
     public static final ModConfigSpec.EnumValue<AutomationPolicy> AUTOMATION_POLICY;
     public static final ModConfigSpec.EnumValue<Policy> UNOWNED_POLICY;
     public static final ModConfigSpec.EnumValue<Policy> CONTEXTLESS_POLICY;
+    public static final ModConfigSpec.EnumValue<RecipeHiding> VIEWER_RECIPE_HIDING;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -87,6 +88,16 @@ public final class ServerConfig {
                 .defineEnum("contextlessPolicy", Policy.ALLOW);
         builder.pop();
 
+        builder.push("viewers");
+        VIEWER_RECIPE_HIDING = builder
+                .comment("Which recipe viewer (JEI/REI/EMI) entries are hidden because they show an item or fluid the player may not see.",
+                        "SLOT: hide an entry when one of its slots can only show hidden things (a slot that cycles through",
+                        "  hidden and visible options keeps the entry visible).",
+                        "STRICT: hide an entry when any slot shows anything hidden, even as one of several options.",
+                        "OUTPUT: only hide recipes whose result is hidden (StageLock 0.1.2 and older).")
+                .defineEnum("recipeHiding", RecipeHiding.SLOT);
+        builder.pop();
+
         builder.push("messages");
         MESSAGE_COOLDOWN_TICKS = builder
                 .comment("Minimum ticks between repeated restriction messages to the same player.")
@@ -97,6 +108,17 @@ public final class ServerConfig {
     }
 
     private ServerConfig() {
+    }
+
+    /** What a hidden item or fluid hides along with it in recipe viewers. */
+    public static RecipeHiding recipeHiding() {
+        return SPEC.isLoaded() ? VIEWER_RECIPE_HIDING.get() : RecipeHiding.SLOT;
+    }
+
+    public enum RecipeHiding {
+        SLOT,
+        STRICT,
+        OUTPUT
     }
 
     public enum DependencyMode {

@@ -44,6 +44,9 @@ public final class RestrictionTypes {
     public static final RestrictionType<EnchantmentRestriction> ENCHANTMENT = register(
             new RestrictionType<>(StageLock.id("enchantment"), EnchantmentRestriction.MAP_CODEC));
 
+    public static final RestrictionType<ViewerCategoryRestriction> VIEWER_CATEGORY = register(
+            new RestrictionType<>(StageLock.id("viewer_category"), ViewerCategoryRestriction.MAP_CODEC));
+
     private RestrictionTypes() {
     }
 
